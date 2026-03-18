@@ -1,155 +1,145 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Pro Tactical App</title>
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3-delaunay@6"></script>
-  <style>
-    body { margin:0; font-family: Arial; background:#0b0f1a; color:white; }
-    #root { display:flex; }
-    .sidebar { width:250px; background:#111827; padding:15px; }
-    .main { flex:1; padding:10px; }
-    canvas { background:#1f2937; border-radius:10px; }
-    button { margin:5px; padding:8px; border:none; border-radius:6px; cursor:pointer; }
-  </style>
+<meta charset="UTF-8">
+<title>Suite Táctica Profesional Completa</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-delaunay@6"></script>
+<style>
+body{margin:0;background:#0b0f1a;color:white;font-family:Arial}
+#root{display:flex;height:100vh}
+.sidebar{width:300px;background:#111827;padding:15px}
+canvas{background:#1f2937;border-radius:10px}
+</style>
 </head>
 <body>
 <div id="root"></div>
 
 <script>
-const { useState, useRef, useEffect } = React;
+const {useState,useRef,useEffect}=React;
+
+const L=105, Wm=68;
 
 function App(){
-  const canvasRef = useRef(null);
-  const [players, setPlayers] = useState([]);
-  const [dragging, setDragging] = useState(null);
-  const [time, setTime] = useState(0);
-  const [running, setRunning] = useState(false);
+const canvasRef=useRef(null);
+const [players,setPlayers]=useState([]);
+const [drag,setDrag]=useState(null);
 
-  // TIMER 5x
-  useEffect(()=>{
-    let interval;
-    if(running){
-      interval = setInterval(()=> setTime(t=>t+5),1000);
-    }
-    return ()=> clearInterval(interval);
-  },[running]);
+const W=900,H=550,margin=40;
+const sx=(W-margin*2)/L;
+const sy=(H-margin*2)/Wm;
 
-  // DRAW FIELD + PLAYERS + VORONOI
-  useEffect(()=>{
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+const toC=(x,y)=>({x:margin+x*sx,y:margin+y*sy});
+const toM=(x,y)=>({x:(x-margin)/sx,y:(y-margin)/sy});
 
-    ctx.fillStyle='green';
-    ctx.fillRect(0,0,800,500);
+// DRAW
+useEffect(()=>{
+const ctx=canvasRef.current.getContext('2d');
+ctx.clearRect(0,0,W,H);
+ctx.fillStyle='green';ctx.fillRect(0,0,W,H);
+ctx.strokeStyle='white';ctx.lineWidth=2;
 
-    // jugadores
-    players.forEach(p=>{
-      ctx.beginPath();
-      ctx.arc(p.x,p.y,8,0,Math.PI*2);
-      ctx.fillStyle = p.team==='A'?'blue':'red';
-      ctx.fill();
-    });
+// Campo
+ctx.strokeRect(margin,margin,L*sx,Wm*sy);
 
-    // VORONOI REAL
-    if(players.length>2){
-      const points = players.map(p=>[p.x,p.y]);
-      const delaunay = d3.Delaunay.from(points);
-      const vor = delaunay.voronoi([0,0,800,500]);
+// Tercios
+for(let i=1;i<3;i++){
+let x=margin+(L/3*i)*sx;
+ctx.beginPath();ctx.moveTo(x,margin);ctx.lineTo(x,margin+Wm*sy);ctx.stroke();
+}
 
-      ctx.strokeStyle='white';
-      for(let i=0;i<points.length;i++){
-        ctx.beginPath();
-        vor.renderCell(i,ctx);
-        ctx.stroke();
-      }
-    }
+// Carriles (5)
+for(let i=1;i<5;i++){
+let y=margin+(Wm/5*i)*sy;
+ctx.beginPath();ctx.moveTo(margin,y);ctx.lineTo(margin+L*sx,y);ctx.stroke();
+}
 
-  },[players]);
+// Jugadores
+players.forEach(p=>{
+let c=toC(p.x,p.y);
+ctx.beginPath();ctx.arc(c.x,c.y,6,0,Math.PI*2);
+ctx.fillStyle=p.team==='A'?'cyan':'orange';ctx.fill();
+});
 
-  // MOUSE EVENTS
-  function handleClick(e){
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    setPlayers([...players,{x,y,team: players.length%2===0?'A':'B'}]);
-  }
+// Voronoi
+if(players.length>2){
+let pts=players.map(p=>{let c=toC(p.x,p.y);return[c.x,c.y];});
+let d=d3.Delaunay.from(pts);
+let v=d.voronoi([0,0,W,H]);
+ctx.strokeStyle='rgba(255,255,255,0.3)';
+pts.forEach((_,i)=>{ctx.beginPath();v.renderCell(i,ctx);ctx.stroke();});
+}
 
-  function handleDown(e){
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    players.forEach((p,i)=>{
-      if(Math.hypot(p.x-x,p.y-y)<10){ setDragging(i); }
-    });
-  }
+},[players]);
 
-  function handleMove(e){
-    if(dragging!==null){
-      const rect = canvasRef.current.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-      const newPlayers = [...players];
-      newPlayers[dragging] = {...newPlayers[dragging],x,y};
-      setPlayers(newPlayers);
-    }
-  }
+// MÉTRICAS
+function dominance(){
+if(players.length<3) return 0;
+let areaA=0,areaB=0;
+let pts=players.map(p=>{let c=toC(p.x,p.y);return[c.x,c.y];});
+let d=d3.Delaunay.from(pts);
+let v=d.voronoi([0,0,W,H]);
+pts.forEach((_,i)=>{
+let cell=v.cellPolygon(i);
+if(!cell) return;
+let area=0;
+for(let j=0;j<cell.length-1;j++){
+area+=cell[j][0]*cell[j+1][1]-cell[j+1][0]*cell[j][1];
+}
+area=Math.abs(area/2);
+if(players[i].team==='A') areaA+=area; else areaB+=area;
+});
+return ((areaA/(areaA+areaB))*100).toFixed(1);
+}
 
-  function handleUp(){ setDragging(null); }
+// INTERACCIÓN
+function click(e){
+let r=canvasRef.current.getBoundingClientRect();
+let m=toM(e.clientX-r.left,e.clientY-r.top);
+setPlayers([...players,{x:m.x,y:m.y,team:players.length%2?'B':'A'}]);
+}
 
-  // PRESIÓN INTELIGENTE
-  function pressureZone(){
-    return players.filter(p=>p.team==='A' && p.x>600).length;
-  }
+function down(e){
+let r=canvasRef.current.getBoundingClientRect();
+let mx=e.clientX-r.left,my=e.clientY-r.top;
+players.forEach((p,i)=>{
+let c=toC(p.x,p.y);
+if(Math.hypot(c.x-mx,c.y-my)<10) setDrag(i);
+});
+}
 
-  // HEATMAP + MÉTRICAS
-  function runAnalysis(){
-    setRunning(false);
-    alert("Heatmap + métricas calculadas\nCompacidad: " + (Math.random()*10).toFixed(2));
-  }
+function move(e){
+if(drag!==null){
+let r=canvasRef.current.getBoundingClientRect();
+let m=toM(e.clientX-r.left,e.clientY-r.top);
+let np=[...players];np[drag]={...np[drag],x:m.x,y:m.y};
+setPlayers(np);
+}
+}
 
-  // CHART
-  useEffect(()=>{
-    new Chart(document.getElementById('chart'),{
-      type:'line',
-      data:{labels:[1,2,3,4],datasets:[{label:'Intensidad',data:[10,40,30,60]}]}
-    });
-  },[]);
+function up(){setDrag(null)}
 
-  return (
-    React.createElement('div',{style:{display:'flex',width:'100%'}},
+return React.createElement('div',{style:{display:'flex',width:'100%'}},
 
-      React.createElement('div',{className:'sidebar'},
-        React.createElement('h2',null,'Panel'),
-        React.createElement('p',null,'Tiempo: '+Math.floor(time/60)+':'+(time%60)),
-        React.createElement('button',{onClick:()=>setRunning(true)},'▶'),
-        React.createElement('button',{onClick:()=>setRunning(false)},'⏸'),
-        React.createElement('button',{onClick:runAnalysis},'Análisis'),
-        React.createElement('p',null,'Presión: '+pressureZone())
-      ),
+React.createElement('div',{className:'sidebar'},
+React.createElement('h2',null,'Suite Profesional'),
+React.createElement('p',null,'Sistema: 105x68 m'),
+React.createElement('p',null,'Dominio A: '+dominance()+'%'),
+React.createElement('p',null,'Click: agregar jugador'),
+React.createElement('p',null,'Drag: mover jugador')
+),
 
-      React.createElement('div',{className:'main'},
-        React.createElement('canvas',{
-          ref:canvasRef,
-          width:800,
-          height:500,
-          onClick:handleClick,
-          onMouseDown:handleDown,
-          onMouseMove:handleMove,
-          onMouseUp:handleUp
-        }),
-        React.createElement('canvas',{id:'chart',width:400,height:150})
-      )
-
-    )
-  );
+React.createElement('div',null,
+React.createElement('canvas',{
+ref:canvasRef,width:W,height:H,
+onClick:click,onMouseDown:down,onMouseMove:move,onMouseUp:up
+})
+)
+);
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
 </script>
-
 </body>
 </html>
