@@ -1,2 +1,2 @@
-# estrategia-futbol
+# Estrategia-futbol
 Estartegia
