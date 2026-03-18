@@ -3,146 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estrategia Fútbol Pro - Live</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>TacticalFlow - Analizador Táctico</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #1b5e20; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 100%; max-width: 480px; box-sizing: border-box; }
-        
-        /* Estilo del Cronómetro */
-        .timer-display { background: #000; color: #ffeb3b; font-family: 'Courier New', Courier, monospace; font-size: 3rem; text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 3px solid #444; }
-        .timer-controls { display: flex; gap: 10px; margin-bottom: 20px; }
-        .btn-timer { flex: 1; padding: 10px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; }
-        .start { background-color: #2e7d32; }
-        .pause { background-color: #f57c00; }
-        .reset { background-color: #d32f2f; }
+        :root {
+            --pitch-green: #2e7d32;
+            --ui-dark: #1a1a1a;
+            --accent: #00e676;
+        }
 
-        .input-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 13px; color: #333; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        
-        .btn-main { width: 100%; padding: 15px; background-color: #1b5e20; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 16px; margin-top: 10px; }
-        #resultado { margin-top: 15px; padding: 15px; border-radius: 6px; text-align: center; display: none; font-weight: bold; border: 1px solid transparent; }
-        .success { background-color: #d4edda; color: #155724; }
-        .danger { background-color: #f8d7da; color: #721c24; }
-        .chart-container { margin-top: 20px; height: 300px; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212;
+            color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* --- Header & Dashboard --- */
+        .dashboard {
+            width: 90%;
+            max-width: 1000px;
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            background: var(--ui-dark);
+            margin-top: 10px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .stat-card { text-align: center; flex: 1; }
+        .stat-value { font-size: 2rem; font-weight: bold; color: var(--accent); }
+
+        /* --- Pitch (Campo de Fútbol) --- */
+        #capture-area {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            background-color: var(--pitch-green);
+            border: 3px solid white;
+            margin: 20px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .pitch-lines {
+            position: absolute;
+            width: 100%; height: 100%;
+            border-left: 2px solid white;
+            border-right: 2px solid white;
+        }
+        .center-line {
+            position: absolute; left: 50%; height: 100%;
+            width: 2px; background: white;
+        }
+        .center-circle {
+            position: absolute; left: 50%; top: 50%;
+            width: 100px; height: 100px;
+            border: 2px solid white; border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* --- Jugadores --- */
+        .player {
+            position: absolute;
+            width: 15px; height: 15px;
+            border-radius: 50%;
+            transition: all 0.2s linear;
+            border: 2px solid white;
+        }
+        .team-a { background-color: #ff5252; }
+        .team-b { background-color: #448aff; }
+
+        /* --- Controles --- */
+        .controls {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn-play { background: var(--accent); color: black; }
+        .btn-download { background: #555; color: white; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2 style="text-align:center; color:#1b5e20;">Match Tracker</h2>
-
-    <div class="timer-display" id="display">00:00</div>
-    <div class="timer-controls">
-        <button class="btn-timer start" onclick="iniciarTimer()">Iniciar</button>
-        <button class="btn-timer pause" onclick="pausarTimer()">Pausa</button>
-        <button class="btn-timer reset" onclick="reiniciarTimer()">Reset</button>
-    </div>
-    
-    <div class="input-group">
-        <label>Nombre del Equipo:</label>
-        <input type="text" id="equipo" placeholder="Ej: Real Madrid">
-    </div>
-    <div class="input-group">
-        <label>Posesión (%):</label>
-        <input type="number" id="posesion" value="50">
-    </div>
-    <div class="input-group">
-        <label>Diferencia de Goles:</label>
-        <input type="number" id="goles" value="0">
+    <div class="dashboard">
+        <div class="stat-card">
+            <div>CRONÓMETRO (5x)</div>
+            <div class="stat-value" id="timer">00:00</div>
+        </div>
+        <div class="stat-card">
+            <div>POSESIÓN LOCAL</div>
+            <div class="stat-value" id="pos-a">50%</div>
+        </div>
+        <div class="stat-card">
+            <div>POSESIÓN VISITANTE</div>
+            <div class="stat-value" id="pos-b">50%</div>
+        </div>
     </div>
 
-    <button class="btn-main" onclick="actualizarAnalisis()">ANALIZAR AHORA</button>
-
-    <div id="resultado"></div>
-
-    <div class="chart-container">
-        <canvas id="graficaTactica"></canvas>
+    <div id="capture-area">
+        <div class="pitch-lines"></div>
+        <div class="center-line"></div>
+        <div class="center-circle"></div>
+        <div id="players-container"></div>
     </div>
-</div>
 
-<script>
-    // --- LÓGICA DEL CRONÓMETRO ---
-    let tiempoSegundos = 0;
-    let intervalo;
-    let corriendo = false;
+    <div class="controls">
+        <button class="btn-play" onclick="toggleSim()">Iniciar / Pausar</button>
+        <button class="btn-download" onclick="downloadAnalysis()">Descargar Imagen</button>
+    </div>
 
-    function iniciarTimer() {
-        if (!corriendo) {
-            corriendo = true;
-            intervalo = setInterval(() => {
-                tiempoSegundos++;
-                actualizarDisplay();
-            }, 1000);
-        }
-    }
+    <script>
+        let isRunning = false;
+        let seconds = 0;
+        let interval;
+        const speedMultiplier = 5; // Velocidad 5x
 
-    function pausarTimer() {
-        corriendo = false;
-        clearInterval(intervalo);
-    }
-
-    function reiniciarTimer() {
-        pausarTimer();
-        tiempoSegundos = 0;
-        actualizarDisplay();
-    }
-
-    function actualizarDisplay() {
-        const mins = Math.floor(tiempoSegundos / 60);
-        const segs = tiempoSegundos % 60;
-        document.getElementById('display').innerText = 
-            `${mins.toString().padStart(2, '0')}:${segs.toString().padStart(2, '0')}`;
-    }
-
-    // --- LÓGICA DE ANÁLISIS ---
-    let miGrafica;
-
-    function actualizarAnalisis() {
-        const equipoNom = document.getElementById('equipo').value || "Equipo";
-        const minActual = Math.floor(tiempoSegundos / 60); // Tomamos el minuto del cronómetro
-        const pos = parseInt(document.getElementById('posesion').value);
-        const gol = parseInt(document.getElementById('goles').value);
-        const resDiv = document.getElementById('resultado');
-
-        resDiv.style.display = "block";
-        
-        // Decisión basada en tiempo real
-        if (gol < 0 && minActual > 75) {
-            resDiv.innerText = `¡${equipoNom.toUpperCase()} AL ATAQUE! Minuto crítico.`;
-            resDiv.className = "danger";
-        } else if (gol > 0 && minActual > 85) {
-            resDiv.innerText = "ORDEN: DEFENDER EL RESULTADO";
-            resDiv.className = "success";
-        } else {
-            resDiv.innerText = "MANTENER POSICIONES";
-            resDiv.className = "success";
+        // Crear jugadores iniciales
+        const container = document.getElementById('players-container');
+        for(let i=0; i<22; i++) {
+            let p = document.createElement('div');
+            p.className = `player ${i < 11 ? 'team-a' : 'team-b'}`;
+            p.id = `p-${i}`;
+            container.appendChild(p);
         }
 
-        // Gráfica
-        const ataque = (gol < 0) ? 90 : 60;
-        const defensa = (gol > 0) ? 90 : 50;
-        const cansancio = (minActual > 70) ? 30 : 80;
+        function updatePositions() {
+            for(let i=0; i<22; i++) {
+                let p = document.getElementById(`p-${i}`);
+                p.style.left = Math.random() * 95 + "%";
+                p.style.top = Math.random() * 95 + "%";
+            }
+            
+            // Simular lógica de posesión basada en posición media
+            let posA = Math.floor(Math.random() * (65 - 35 + 1) + 35);
+            document.getElementById('pos-a').innerText = posA + "%";
+            document.getElementById('pos-b').innerText = (100 - posA) + "%";
+        }
 
-        if (miGrafica) { miGrafica.destroy(); }
-        const ctx = document.getElementById('graficaTactica').getContext('2d');
-        miGrafica = new Chart(ctx, {
-            type: 'radar',
-            data: {
-                labels: ['Ataque', 'Defensa', 'Posesión', 'Energía', 'Presión'],
-                datasets: [{
-                    label: `Estado al min ${minActual}`,
-                    data: [ataque, defensa, pos, cansancio, 70],
-                    backgroundColor: 'rgba(27, 94, 32, 0.2)',
-                    borderColor: '#1b5e20',
-                    borderWidth: 2
-                }]
-            },
-            options: { scales: { r: { min: 0, max: 100 } }, maintainAspectRatio: false }
-        });
-    }
-</script>
+        function toggleSim() {
+            isRunning = !isRunning;
+            if(isRunning) {
+                interval = setInterval(() => {
+                    seconds++;
+                    let displayMin = Math.floor(seconds / 60);
+                    let displaySec = seconds % 60;
+                    document.getElementById('timer').innerText = 
+                        `${displayMin.toString().padStart(2,'0')}:${displaySec.toString().padStart(2,'0')}`;
+                    
+                    updatePositions();
+                    if(seconds >= 5400) clearInterval(interval); // Fin al min 90
+                }, 1000 / speedMultiplier);
+            } else {
+                clearInterval(interval);
+            }
+        }
 
+        function downloadAnalysis() {
+            html2canvas(document.querySelector("#capture-area")).then(canvas => {
+                let link = document.createElement('a');
+                link.download = `analisis-min-${seconds}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
+        }
+    </script>
 </body>
 </html>
