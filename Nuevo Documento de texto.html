@@ -3,92 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Decision Kick - Personalizado</title>
+    <title>Analista Táctico con Gráficas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #e8f5e9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 380px; border-top: 5px solid #2e7d32; }
-        h2 { color: #1b5e20; text-align: center; margin-top: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #1b5e20; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 20px; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 450px; }
+        h2 { color: #1b5e20; text-align: center; margin-bottom: 20px; }
         .input-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; font-size: 14px; }
-        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background-color: #2e7d32; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:hover { background-color: #1b5e20; }
-        #resultado { margin-top: 20px; padding: 15px; border-radius: 5px; text-align: center; font-weight: bold; display: none; line-height: 1.5; }
-        .success { background-color: #c8e6c9; color: #1b5e20; border: 1px solid #2e7d32; }
-        .warning { background-color: #fff9c4; color: #f57f17; border: 1px solid #fbc02d; }
-        .danger { background-color: #ffcdd2; color: #c62828; border: 1px solid #d32f2f; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 13px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #2e7d32; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        #resultado { margin-top: 15px; padding: 10px; border-radius: 6px; text-align: center; display: none; font-weight: bold; }
+        .chart-container { margin-top: 20px; height: 300px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .danger { background-color: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>Estrategia Fútbol</h2>
+    <h2>Analista Pro v2</h2>
     
     <div class="input-group">
-        <label>Nombre del Equipo:</label>
-        <input type="text" id="nombreEquipo" placeholder="Ej: Los Galácticos">
+        <label>Equipo:</label>
+        <input type="text" id="equipo" placeholder="Nombre del club">
     </div>
-
     <div class="input-group">
-        <label>Minuto del partido:</label>
-        <input type="number" id="minuto" placeholder="Ej: 85">
+        <label>Minuto:</label>
+        <input type="number" id="minuto" value="0">
     </div>
-
     <div class="input-group">
         <label>Posesión (%):</label>
-        <input type="number" id="posesion" placeholder="Ej: 45">
+        <input type="number" id="posesion" value="50">
     </div>
-
     <div class="input-group">
-        <label>Diferencia de goles:</label>
-        <input type="number" id="goles" placeholder="(-1 si vas perdiendo)">
+        <label>Goles de Diferencia:</label>
+        <input type="number" id="goles" value="0">
     </div>
 
-    <button onclick="tomarDecision()">Generar Orden Táctica</button>
+    <button onclick="actualizarAnalisis()">Generar Gráfica y Táctica</button>
 
     <div id="resultado"></div>
+
+    <div class="chart-container">
+        <canvas id="graficaTactica"></canvas>
+    </div>
 </div>
 
 <script>
-    function tomarDecision() {
-        // 1. Obtener valores
-        const equipo = document.getElementById('nombreEquipo').value;
+    let miGrafica; // Variable global para la instancia de la gráfica
+
+    function actualizarAnalisis() {
+        const equipo = document.getElementById('equipo').value || "Equipo";
         const min = parseInt(document.getElementById('minuto').value);
         const pos = parseInt(document.getElementById('posesion').value);
         const gol = parseInt(document.getElementById('goles').value);
+
+        // --- Lógica de Decisión ---
         const resDiv = document.getElementById('resultado');
-
-        // Validar que el nombre no esté vacío
-        if (equipo.trim() === "" || isNaN(min) || isNaN(pos) || isNaN(gol)) {
-            alert("Por favor, ingresa el nombre del equipo y todos los datos numéricos.");
-            return;
-        }
-
-        let tactica = "";
-        let clase = "";
-
-        // 2. Lógica de decisión
-        if (gol < 0 && min > 75) {
-            tactica = "¡ATAQUE TOTAL! Todos al área contraria.";
-            clase = "danger";
-        } else if (gol > 0 && min > 80) {
-            tactica = "CONTROL TOTAL: Circulación de balón lenta.";
-            clase = "success";
-        } else if (pos < 40) {
-            tactica = "BLOQUE BAJO: Cerrar espacios y contraatacar.";
-            clase = "warning";
-        } else {
-            tactica = "PRESIÓN MEDIA: Mantener orden defensivo.";
-            clase = "success";
-        }
-
-        // 3. Mostrar resultado personalizado
-        // Usamos backticks (`) para combinar el nombre del equipo con la táctica
-        resDiv.innerHTML = `<strong>${equipo.toUpperCase()}:</strong><br>${tactica}`;
-        resDiv.className = clase;
         resDiv.style.display = "block";
-    }
-</script>
-
-</body>
-</html>
+        if (gol < 0 && min > 70)
