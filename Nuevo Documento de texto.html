@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Kick - Personalizado</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #e8f5e9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 380px; border-top: 5px solid #2e7d32; }
+        h2 { color: #1b5e20; text-align: center; margin-top: 0; }
+        .input-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; font-size: 14px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #2e7d32; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:hover { background-color: #1b5e20; }
+        #resultado { margin-top: 20px; padding: 15px; border-radius: 5px; text-align: center; font-weight: bold; display: none; line-height: 1.5; }
+        .success { background-color: #c8e6c9; color: #1b5e20; border: 1px solid #2e7d32; }
+        .warning { background-color: #fff9c4; color: #f57f17; border: 1px solid #fbc02d; }
+        .danger { background-color: #ffcdd2; color: #c62828; border: 1px solid #d32f2f; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Estrategia Fútbol</h2>
+    
+    <div class="input-group">
+        <label>Nombre del Equipo:</label>
+        <input type="text" id="nombreEquipo" placeholder="Ej: Los Galácticos">
+    </div>
+
+    <div class="input-group">
+        <label>Minuto del partido:</label>
+        <input type="number" id="minuto" placeholder="Ej: 85">
+    </div>
+
+    <div class="input-group">
+        <label>Posesión (%):</label>
+        <input type="number" id="posesion" placeholder="Ej: 45">
+    </div>
+
+    <div class="input-group">
+        <label>Diferencia de goles:</label>
+        <input type="number" id="goles" placeholder="(-1 si vas perdiendo)">
+    </div>
+
+    <button onclick="tomarDecision()">Generar Orden Táctica</button>
+
+    <div id="resultado"></div>
+</div>
+
+<script>
+    function tomarDecision() {
+        // 1. Obtener valores
+        const equipo = document.getElementById('nombreEquipo').value;
+        const min = parseInt(document.getElementById('minuto').value);
+        const pos = parseInt(document.getElementById('posesion').value);
+        const gol = parseInt(document.getElementById('goles').value);
+        const resDiv = document.getElementById('resultado');
+
+        // Validar que el nombre no esté vacío
+        if (equipo.trim() === "" || isNaN(min) || isNaN(pos) || isNaN(gol)) {
+            alert("Por favor, ingresa el nombre del equipo y todos los datos numéricos.");
+            return;
+        }
+
+        let tactica = "";
+        let clase = "";
+
+        // 2. Lógica de decisión
+        if (gol < 0 && min > 75) {
+            tactica = "¡ATAQUE TOTAL! Todos al área contraria.";
+            clase = "danger";
+        } else if (gol > 0 && min > 80) {
+            tactica = "CONTROL TOTAL: Circulación de balón lenta.";
+            clase = "success";
+        } else if (pos < 40) {
+            tactica = "BLOQUE BAJO: Cerrar espacios y contraatacar.";
+            clase = "warning";
+        } else {
+            tactica = "PRESIÓN MEDIA: Mantener orden defensivo.";
+            clase = "success";
+        }
+
+        // 3. Mostrar resultado personalizado
+        // Usamos backticks (`) para combinar el nombre del equipo con la táctica
+        resDiv.innerHTML = `<strong>${equipo.toUpperCase()}:</strong><br>${tactica}`;
+        resDiv.className = clase;
+        resDiv.style.display = "block";
+    }
+</script>
+
+</body>
+</html>
