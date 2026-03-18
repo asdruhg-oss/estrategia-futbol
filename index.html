@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estrategia Fútbol Pro - Exportable</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #1b5e20; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 100%; max-width: 450px; box-sizing: border-box; }
+        h2 { color: #1b5e20; text-align: center; margin-top: 0; }
+        .input-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 13px; color: #333; }
+        input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        .btn-main { width: 100%; padding: 12px; background-color: #2e7d32; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s; }
+        .btn-main:hover { background-color: #1b5e20; }
+        .btn-download { width: 100%; padding: 10px; background-color: #1976d2; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 15px; display: none; }
+        #resultado { margin-top: 15px; padding: 15px; border-radius: 6px; text-align: center; display: none; font-weight: bold; border: 1px solid transparent; }
+        .success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .danger { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .chart-container { margin-top: 20px; height: 300px; position: relative; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="capture-area">
+    <h2>Estrategia Fútbol</h2>
+    
+    <div class="input-group">
+        <label>Equipo:</label>
+        <input type="text" id="equipo" placeholder="Nombre del club">
+    </div>
+    <div class="input-group">
+        <label>Minuto:</label>
+        <input type="number" id="minuto" value="0">
+    </div>
+    <div class="input-group">
+        <label>Posesión (%):</label>
+        <input type="number" id="posesion" value="50">
+    </div>
+    <div class="input-group">
+        <label>Diferencia de Goles:</label>
+        <input type="number" id="goles" value="0">
+    </div>
+
+    <button class="btn-main" onclick="actualizarAnalisis()">Analizar y Graficar</button>
+
+    <div id="resultado"></div>
+
+    <div class="chart-container">
+        <canvas id="graficaTactica"></canvas>
+    </div>
+
+    <button id="btnDescarga" class="btn-download" onclick="descargarReporte()">📥 Descargar Reporte (PNG)</button>
+</div>
+
+<script>
+    let miGrafica;
+
+    function actualizarAnalisis() {
+        const equipoNom = document.getElementById('equipo').value || "Equipo";
+        const min = parseInt(document.getElementById('minuto').value);
+        const pos = parseInt(document.getElementById('posesion').value);
+        const gol = parseInt(document.getElementById('goles').value);
+        const resDiv = document.getElementById('resultado');
+        const btnD = document.getElementById('btnDescarga');
+
+        // Lógica Táctica
+        resDiv.style.display = "block";
+        if (gol < 0 && min > 70) {
+            resDiv.innerText = "DECISIÓN: ATAQUE TOTAL";
+            resDiv.className = "danger";
+        } else if (gol > 0 && min > 80) {
+            resDiv.innerText = "DECISIÓN: CERRAR PARTIDO";
+            resDiv.className = "success";
+        } else {
+            resDiv.innerText = "DECISIÓN: MANTENER PLAN";
+            resDiv.className = "success";
+        }
+
+        // Lógica de Datos para la Gráfica
+        const ataque = (gol < 0) ? 90 : (gol > 0 ? 40 : 65);
+        const defensa = (gol > 0) ? 90 : (gol < 0 ? 30 : 60);
+        const control = pos;
+        const fisico = (min > 70) ? 40 : 85;
+
+        if (miGrafica) { miGrafica.destroy(); }
+
+        const ctx = document.getElementById('graficaTactica').getContext('2d');
+        miGrafica = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Ataque', 'Defensa', 'Posesión', 'Físico', 'Ritmo'],
+                datasets: [{
+                    label: `Estado de ${equipoNom}`,
+                    data: [ataque, defensa, control, fisico, 70],
+                    backgroundColor: 'rgba(46, 125, 50, 0.3)',
+                    borderColor: '#2e7d32',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                scales: { r: { min: 0, max: 100 } },
+                maintainAspectRatio: false
+            }
+        });
+
+        // Mostrar botón de descarga
+        btnD.style.display = "block";
+    }
+
+    function descargarReporte() {
+        const canvas = document.getElementById('graficaTactica');
+        const equipoNom = document.getElementById('equipo').value || "Equipo";
+        
+        // Crear un enlace temporal para la descarga
+        const link = document.createElement('a');
+        link.download = `Reporte-${equipoNom}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+</script>
+
+</body>
+</html>
