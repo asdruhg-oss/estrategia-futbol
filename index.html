@@ -1,185 +1,59 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TacticalFlow - Analizador Táctico</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <style>
-        :root {
-            --pitch-green: #2e7d32;
-            --ui-dark: #1a1a1a;
-            --accent: #00e676;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #121212;
-            color: white;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* --- Header & Dashboard --- */
-        .dashboard {
-            width: 90%;
-            max-width: 1000px;
-            display: flex;
-            justify-content: space-between;
-            padding: 20px;
-            background: var(--ui-dark);
-            margin-top: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        .stat-card { text-align: center; flex: 1; }
-        .stat-value { font-size: 2rem; font-weight: bold; color: var(--accent); }
-
-        /* --- Pitch (Campo de Fútbol) --- */
-        #capture-area {
-            position: relative;
-            width: 800px;
-            height: 500px;
-            background-color: var(--pitch-green);
-            border: 3px solid white;
-            margin: 20px;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-
-        .pitch-lines {
-            position: absolute;
-            width: 100%; height: 100%;
-            border-left: 2px solid white;
-            border-right: 2px solid white;
-        }
-        .center-line {
-            position: absolute; left: 50%; height: 100%;
-            width: 2px; background: white;
-        }
-        .center-circle {
-            position: absolute; left: 50%; top: 50%;
-            width: 100px; height: 100px;
-            border: 2px solid white; border-radius: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        /* --- Jugadores --- */
-        .player {
-            position: absolute;
-            width: 15px; height: 15px;
-            border-radius: 50%;
-            transition: all 0.2s linear;
-            border: 2px solid white;
-        }
-        .team-a { background-color: #ff5252; }
-        .team-b { background-color: #448aff; }
-
-        /* --- Controles --- */
-        .controls {
-            margin-bottom: 30px;
-            display: flex;
-            gap: 15px;
-        }
-
-        button {
-            padding: 10px 20px;
-            cursor: pointer;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-        .btn-play { background: var(--accent); color: black; }
-        .btn-download { background: #555; color: white; }
-    </style>
-</head>
-<body>
-
-    <div class="dashboard">
-        <div class="stat-card">
-            <div>CRONÓMETRO (5x)</div>
-            <div class="stat-value" id="timer">00:00</div>
+<div id="analysis-results" style="display:none; width: 90%; margin-top: 20px; background: #1e1e1e; padding: 20px; border-radius: 10px; border-left: 5px solid #00e676;">
+    <h3>📊 Informe Post-Partido</h3>
+    <div style="display: flex; justify-content: space-around;">
+        <div id="heatmap-data">
+            <p><strong>Zonas de Mayor Influencia:</strong></p>
+            <canvas id="heatmapCanvas" width="300" height="200" style="border: 1px solid #444;"></canvas>
         </div>
-        <div class="stat-card">
-            <div>POSESIÓN LOCAL</div>
-            <div class="stat-value" id="pos-a">50%</div>
-        </div>
-        <div class="stat-card">
-            <div>POSESIÓN VISITANTE</div>
-            <div class="stat-value" id="pos-b">50%</div>
+        <div>
+            <p><strong>Métricas Clave:</strong></p>
+            <ul id="metrics-list">
+                </ul>
         </div>
     </div>
+</div>
 
-    <div id="capture-area">
-        <div class="pitch-lines"></div>
-        <div class="center-line"></div>
-        <div class="center-circle"></div>
-        <div id="players-container"></div>
-    </div>
+<div class="controls">
+    <button id="btn-analyze" style="background: #ffc107; color: black;" onclick="runTacticalAnalysis()">Realizar Análisis Táctico</button>
+</div>
 
-    <div class="controls">
-        <button class="btn-play" onclick="toggleSim()">Iniciar / Pausar</button>
-        <button class="btn-download" onclick="downloadAnalysis()">Descargar Imagen</button>
-    </div>
+<script>
+// --- NUEVA LÓGICA DE ANÁLISIS ---
+let positionHistory = []; // Guardará todas las coordenadas
 
-    <script>
-        let isRunning = false;
-        let seconds = 0;
-        let interval;
-        const speedMultiplier = 5; // Velocidad 5x
+// Dentro del intervalo de toggleSim, añade:
+// positionHistory.push({ teamA: positionsA, teamB: positionsB });
 
-        // Crear jugadores iniciales
-        const container = document.getElementById('players-container');
-        for(let i=0; i<22; i++) {
-            let p = document.createElement('div');
-            p.className = `player ${i < 11 ? 'team-a' : 'team-b'}`;
-            p.id = `p-${i}`;
-            container.appendChild(p);
-        }
+function runTacticalAnalysis() {
+    if (isRunning) toggleSim(); // Pausar si está corriendo
+    
+    document.getElementById('analysis-results').style.display = 'block';
+    
+    // 1. Simular Cálculo de Compacidad (Distancia media entre jugadores)
+    const compacidad = (Math.random() * (35 - 20) + 20).toFixed(1);
+    const lineas = (Math.random() * (15 - 8) + 8).toFixed(1);
+    
+    const list = document.getElementById('metrics-list');
+    list.innerHTML = `
+        <li>Compacidad Defensiva: ${compacidad}m</li>
+        <li>Distancia entre líneas: ${lineas}m</li>
+        <li>Altura de la línea defensiva: Media</li>
+        <li>Transiciones detectadas: 14</li>
+    `;
 
-        function updatePositions() {
-            for(let i=0; i<22; i++) {
-                let p = document.getElementById(`p-${i}`);
-                p.style.left = Math.random() * 95 + "%";
-                p.style.top = Math.random() * 95 + "%";
-            }
-            
-            // Simular lógica de posesión basada en posición media
-            let posA = Math.floor(Math.random() * (65 - 35 + 1) + 35);
-            document.getElementById('pos-a').innerText = posA + "%";
-            document.getElementById('pos-b').innerText = (100 - posA) + "%";
-        }
-
-        function toggleSim() {
-            isRunning = !isRunning;
-            if(isRunning) {
-                interval = setInterval(() => {
-                    seconds++;
-                    let displayMin = Math.floor(seconds / 60);
-                    let displaySec = seconds % 60;
-                    document.getElementById('timer').innerText = 
-                        `${displayMin.toString().padStart(2,'0')}:${displaySec.toString().padStart(2,'0')}`;
-                    
-                    updatePositions();
-                    if(seconds >= 5400) clearInterval(interval); // Fin al min 90
-                }, 1000 / speedMultiplier);
-            } else {
-                clearInterval(interval);
-            }
-        }
-
-        function downloadAnalysis() {
-            html2canvas(document.querySelector("#capture-area")).then(canvas => {
-                let link = document.createElement('a');
-                link.download = `analisis-min-${seconds}.png`;
-                link.href = canvas.toDataURL();
-                link.click();
-            });
-        }
-    </script>
-</body>
-</html>
+    // 2. Dibujar un Mini Mapa de Calor simplificado
+    const htx = document.getElementById('heatmapCanvas').getContext('2d');
+    htx.fillStyle = "#2e7d32";
+    htx.fillRect(0, 0, 300, 200);
+    
+    // Dibujar manchas de calor aleatorias basadas en el "éxito" del equipo
+    for(let i=0; i<50; i++) {
+        htx.beginPath();
+        htx.arc(Math.random()*300, Math.random()*200, 15, 0, 2*Math.PI);
+        htx.fillStyle = "rgba(255, 255, 0, 0.15)";
+        htx.fill();
+    }
+    
+    alert("Análisis Táctico Completado. Revisa el informe abajo.");
+}
+</script>
